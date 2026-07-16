@@ -231,10 +231,32 @@ let s:clickhouse = {
       \ 'quote': 1,
       \ }
 
+let s:athena_schemes_query = "
+      \ SELECT schema_name FROM information_schema.schemata
+      \ WHERE schema_name != 'information_schema'
+      \ ORDER BY schema_name"
+
+let s:athena_schemes_tables_query = "
+      \ SELECT table_schema, table_name
+      \ FROM information_schema.tables
+      \ WHERE table_schema != 'information_schema'
+      \ ORDER BY table_name"
+
+let s:athena = {
+      \ 'callable': 'filter',
+      \ 'schemes_query': trim(s:athena_schemes_query),
+      \ 'schemes_tables_query': trim(s:athena_schemes_tables_query),
+      \ 'parse_results': {results, min_len -> s:results_parser(results, '\t', min_len)},
+      \ 'default_scheme': '',
+      \ 'requires_stdin': v:true,
+      \ 'quote': 0,
+      \ }
+
 " Add ClickHouse to the schemas dictionary
 let s:schemas = {
       \ 'postgres': s:postgresql,
       \ 'postgresql': s:postgresql,
+      \ 'athena': s:athena,
       \ 'sqlserver': s:sqlserver,
       \ 'mysql': s:mysql,
       \ 'mariadb': s:mysql,
