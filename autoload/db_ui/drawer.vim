@@ -450,8 +450,18 @@ function! s:drawer.render_tables(tables, db, path, level, schema) abort
   for table in tables_list
     call self.add(table, 'toggle', a:path.'->'.table, self.get_toggle_icon('table', a:tables.items[table]), a:db.key_name, a:level, { 'expanded': a:tables.items[table].expanded })
     if a:tables.items[table].expanded
+      let table_item = a:tables.items[table]
       for [helper_name, helper] in items(a:db.table_helpers)
-        call self.add(helper_name, 'open', 'table', g:db_ui_icons.tables, a:db.key_name, a:level + 1, {'table': table, 'content': helper, 'schema': a:schema })
+        if helper_name ==? 'Columns'
+          call self.add(helper_name, 'toggle', a:path.'->'.table.'->columns', self.get_toggle_icon('columns', table_item.columns), a:db.key_name, a:level + 1, {'table': table, 'schema': a:schema })
+          if table_item.columns.expanded
+            for column in table_item.columns.list
+              call self.add(column, 'noaction', 'column', '', a:db.key_name, a:level + 2, {})
+            endfor
+          endif
+        else
+          call self.add(helper_name, 'open', 'table', g:db_ui_icons.tables, a:db.key_name, a:level + 1, {'table': table, 'content': helper, 'schema': a:schema })
+        endif
       endfor
     endif
   endfor
@@ -488,6 +498,8 @@ function! s:drawer.toggle_line(edit_action) abort
 
   if item.type ==? 'db'
     call self.toggle_db(db)
+  elseif item.type =~# '->columns$'
+    call self.fetch_columns(db, tree, item)
   endif
 
   return self.render()
@@ -616,7 +628,7 @@ endfunction
 function! s:drawer.populate_table_items(tables) abort
   for table in a:tables.list
     if !has_key(a:tables.items, table)
-      let a:tables.items[table] = {'expanded': 0 }
+      let a:tables.items[table] = {'expanded': 0, 'columns': {'expanded': 0, 'list': [], 'fetched': 0 } }
     endif
   endfor
 endfunction
@@ -658,6 +670,36 @@ function! s:drawer.populate_schemas(db) abort
     call self.populate_table_items(a:db.schemas.items[schema].tables)
   endfor
   return a:db
+endfunction
+
+function! s:drawer.fetch_columns(db, columns_tree, item) abort
+  if a:columns_tree.fetched
+    return
+  endif
+
+  let query_template = get(a:db.table_helpers, 'Columns', '')
+  if empty(query_template)
+    let a:columns_tree.fetched = 1
+    return
+  endif
+
+  let table = a:item.table
+  let schema = a:item.schema
+  let optional_schema = schema ==? a:db.default_scheme ? '' : schema
+  if !empty(optional_schema)
+    if a:db.quote
+      let optional_schema = '"'.optional_schema.'"'
+    endif
+    let optional_schema = optional_schema.'.'
+  endif
+
+  let query = substitute(query_template, '{table}', table, 'g')
+  let query = substitute(query, '{optional_schema}', optional_schema, 'g')
+  let query = substitute(query, '{schema}', schema, 'g')
+
+  let scheme = db_ui#schemas#get(a:db.scheme)
+  let a:columns_tree.list = db_ui#schemas#query(a:db, scheme, query)
+  let a:columns_tree.fetched = 1
 endfunction
 
 function! s:drawer.get_toggle_icon(type, item) abort
