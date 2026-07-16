@@ -187,6 +187,11 @@ let s:clickhouse = {
       \ 'Columns': "select name from system.columns where database='{schema}' and table='{table}'",
       \ }
 
+let s:athena = {
+      \ 'List': "select * from {schema}.{table} limit 200",
+      \ 'Columns': "select column_name, data_type, is_nullable from information_schema.columns where table_schema='{schema}' and table_name='{table}' order by ordinal_position",
+      \ }
+
 let s:helpers = {
       \ 'bigquery': s:bigquery,
       \ 'postgresql': s:postgres,
@@ -196,6 +201,7 @@ let s:helpers = {
       \ 'sqlite': s:sqlite,
       \ 'sqlserver': s:sqlserver,
       \ 'clickhouse': s:clickhouse,
+      \ 'athena': s:athena,
       \ 'mongodb': { 'List': '{table}.find()'},
       \  }
 
