@@ -244,6 +244,7 @@ let s:athena_schemes_tables_query = "
 
 let s:athena = {
       \ 'callable': 'filter',
+      \ 'args': ['--format', 'tsv'],
       \ 'schemes_query': trim(s:athena_schemes_query),
       \ 'schemes_tables_query': trim(s:athena_schemes_tables_query),
       \ 'parse_results': {results, min_len -> s:results_parser(results, '\t', min_len)},
